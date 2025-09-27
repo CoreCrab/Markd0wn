@@ -10,12 +10,12 @@ a modern and simple md to html generator that adds style to your text
 <br/>
 <br/>
 <a href="https://markd0wn.vercel.app"><strong>Open the app »</strong></a>
+</p>
+</div>
 
 <div align="center">
 <img src="https://i.imgur.com/D624iOr.png" alt="Logo" width="150" height="90">
 </a>
-
-</p>
 </div>
 
 ## About The Project
