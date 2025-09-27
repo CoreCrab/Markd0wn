@@ -52,8 +52,5 @@ Barna - [Links](https://guns.lol/barnuss) - barnus@barnuss.eu
 Project Link: [https://github.com/CoreCrab/Markd0wn](https://github.com/CoreCrab/Markd0wn)
 ## Acknowledgments
 
-Use this space to list resources you find helpful and would like to give credit to. I've included a few of my favorites to kick things off!
-
-
 - [Shadcn/ui](https://ui.shadcn.com/)
 - [Claude (for some development help)](https://claude.ai/)
