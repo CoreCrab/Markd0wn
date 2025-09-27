@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown to HTML Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --background: 255, 255, 255;
+            --foreground: 0, 0, 0;
+            --muted: 250, 250, 250;
+            --muted-foreground: 115, 115, 115;
+            --border: 229, 229, 229;
+            --accent: 0, 0, 0;
+            --accent-foreground: 255, 255, 255;
+            --card: 255, 255, 255;
+            --card-border: 240, 240, 240;
+            --panel-bg: 249, 250, 251;
+            --radius: 12px;
+        }
+
+        [data-theme="dark"] {
+            --background: 9, 9, 11;
+            --foreground: 250, 250, 250;
+            --muted: 24, 24, 27;
+            --muted-foreground: 161, 161, 170;
+            --border: 39, 39, 42;
+            --accent: 255, 255, 255;
+            --accent-foreground: 0, 0, 0;
+            --card: 24, 24, 27;
+            --card-border: 39, 39, 42;
+            --panel-bg: 20, 20, 23;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: rgb(var(--background));
+            color: rgb(var(--foreground));
+            line-height: 1.6;
+            transition: all 0.2s ease;
+            font-feature-settings: 'cv11', 'ss01';
+            font-variation-settings: 'opsz' 32;
+        }
+
+        .app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            border-bottom: 1px solid rgb(var(--border));
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgb(var(--background));
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: rgb(var(--foreground));
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            cursor: pointer;
+            text-decoration: none;
+            gap: 0.5rem;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: rgb(var(--accent));
+            color: rgb(var(--accent-foreground));
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: rgb(var(--foreground));
+            border: 1px solid rgb(var(--border));
+        }
+
+        .btn-ghost:hover {
+            background: rgb(var(--muted));
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            width: 40px;
+            height: 40px;
+        }
+
+        .main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgb(var(--panel-bg));
+            overflow: hidden;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: rgb(var(--card));
+            border: 1px solid rgb(var(--card-border));
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+        }
+
+        .panel-header {
+            padding: 1rem 1.5rem 0.75rem;
+            border-bottom: 1px solid rgb(var(--card-border));
+            background: rgb(var(--muted) / 0.3);
+        }
+
+        .panel-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: rgb(var(--muted-foreground));
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            background: rgb(var(--card));
+        }
+
+        .editor {
+            width: 100%;
+            height: 100%;
+            padding: 1.5rem;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: rgb(var(--foreground));
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            letter-spacing: 0.025em;
+        }
+
+        .editor::placeholder {
+            color: rgb(var(--muted-foreground));
+        }
+
+        .preview {
+            padding: 1.5rem;
+            overflow-y: auto;
+            height: 100%;
+            background: rgb(var(--card));
+        }
+
+        .preview::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .preview::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .preview::-webkit-scrollbar-thumb {
+            background: rgb(var(--border));
+            border-radius: 3px;
+        }
+
+        .preview::-webkit-scrollbar-thumb:hover {
+            background: rgb(var(--muted-foreground));
+        }
+
+        /* Markdown Styles */
+        .preview h1, .preview h2, .preview h3, .preview h4, .preview h5, .preview h6 {
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            line-height: 1.25;
+            color: rgb(var(--foreground));
+        }
+
+        .preview h1:first-child,
+        .preview h2:first-child,
+        .preview h3:first-child {
+            margin-top: 0;
+        }
+
+        .preview h1 { 
+            font-size: 2.25rem; 
+            border-bottom: 1px solid rgb(var(--border)); 
+            padding-bottom: 0.75rem; 
+            margin-bottom: 1.5rem;
+        }
+        .preview h2 { font-size: 1.875rem; }
+        .preview h3 { font-size: 1.5rem; }
+        .preview h4 { font-size: 1.25rem; }
+        .preview h5 { font-size: 1.125rem; }
+        .preview h6 { font-size: 1rem; color: rgb(var(--muted-foreground)); }
+
+        .preview p {
+            margin-bottom: 1.25rem;
+            color: rgb(var(--foreground));
+        }
+
+        .preview ul, .preview ol {
+            margin: 1.25rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .preview li {
+            margin-bottom: 0.5rem;
+        }
+
+        .preview li > p {
+            margin-bottom: 0.5rem;
+        }
+
+        .preview blockquote {
+            border-left: 4px solid rgb(var(--border));
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            background: rgb(var(--muted) / 0.5);
+            border-radius: 0 var(--radius) var(--radius) 0;
+            color: rgb(var(--muted-foreground));
+        }
+
+        .preview blockquote p:last-child {
+            margin-bottom: 0;
+        }
+
+        .preview table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            border: 1px solid rgb(var(--border));
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .preview th, .preview td {
+            border-bottom: 1px solid rgb(var(--border));
+            padding: 0.75rem 1rem;
+            text-align: left;
+        }
+
+        .preview th {
+            background: rgb(var(--muted));
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .preview tr:last-child td {
+            border-bottom: none;
+        }
+
+        .preview pre {
+            background: rgb(var(--muted));
+            padding: 1.25rem;
+            border-radius: var(--radius);
+            margin: 1.5rem 0;
+            overflow-x: auto;
+            border: 1px solid rgb(var(--border));
+            position: relative;
+        }
+
+        .preview code {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 0.875rem;
+            letter-spacing: 0.025em;
+        }
+
+        .preview p code {
+            background: rgb(var(--muted));
+            padding: 0.25rem 0.375rem;
+            border-radius: 4px;
+            font-size: 0.8125rem;
+            border: 1px solid rgb(var(--border));
+        }
+
+        .preview a {
+            color: rgb(var(--foreground));
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            text-decoration-thickness: 1px;
+        }
+
+        .preview a:hover {
+            text-decoration-thickness: 2px;
+        }
+
+        .preview hr {
+            border: none;
+            border-top: 1px solid rgb(var(--border));
+            margin: 2rem 0;
+        }
+
+        .preview .markdown-button {
+            background: rgb(var(--accent));
+            color: rgb(var(--accent-foreground));
+            border: none;
+            border-radius: var(--radius);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0.25rem 0.25rem 0.25rem 0;
+        }
+
+        .preview .markdown-button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* Task lists */
+        .preview input[type="checkbox"] {
+            margin-right: 0.5rem;
+            accent-color: rgb(var(--accent));
+        }
+
+        /* Definition lists */
+        .preview dl {
+            margin: 1.5rem 0;
+        }
+
+        .preview dt {
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .preview dd {
+            margin-left: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: rgb(var(--muted-foreground));
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr;
+                padding: 0.75rem;
+                gap: 0.75rem;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+
+            .header-actions {
+                gap: 0.5rem;
+            }
+
+            .btn {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.8125rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .main {
+                padding: 0.5rem;
+                gap: 0.5rem;
+            }
+            
+            .editor, .preview {
+                padding: 1rem;
+            }
+
+            .panel-header {
+                padding: 0.75rem 1rem 0.5rem;
+            }
+
+            .logo {
+                font-size: 1.125rem;
+            }
+
+            .btn {
+                padding: 0.375rem 0.625rem;
+            }
+        }
+
+        /* Focus states */
+        .btn:focus-visible {
+            outline: 2px solid rgb(var(--accent));
+            outline-offset: 2px;
+        }
+
+        .editor:focus {
+            outline: none;
+        }
+
+        /* Selection */
+        ::selection {
+            background: rgb(var(--accent) / 0.1);
+        }
+
+        /* Empty state */
+        .preview-empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: rgb(var(--muted-foreground));
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">Markd0wn - v1.0</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="exportHTML()">
+                    <span>Export HTML</span>
+                </button>
+                <button class="btn btn-icon btn-ghost" onclick="toggleTheme()" title="Toggle theme">
+                    <span class="theme-icon">🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Markdown</div>
+                </div>
+                <div class="panel-content">
+                    <textarea 
+                        class="editor" 
+                        placeholder="Start writing your markdown..."
+                        oninput="convertMarkdown()"
+                        id="markdown-input"
+                        spellcheck="false"
+                    ># Welcome to Markdown Converter
+
+Transform your **Markdown** into beautiful HTML with real-time preview.
+
+## Features
+
+- [x] Live preview
+- [x] Modern design
+- [x] Dark/light themes
+- [x] HTML export
+- [x] Responsive layout
+
+## Code Example
+
+```javascript
+function greet(name) {
+    return `Hello, ${name}!`;
+}
+
+console.log(greet('World'));
+```
+
+## Custom Elements
+
+<button onclick="alert('Hello!')">Interactive Button</button>
+
+## Tables
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Parsing | ✅ | Fast & reliable |
+| Export | ✅ | One-click download |
+| Themes | ✅ | Light & dark |
+
+> **Tip:** Use the export button to download your converted HTML file.
+
+---
+
+*Start editing to see the magic happen!*</textarea>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Preview</div>
+                </div>
+                <div class="panel-content">
+                    <div class="preview" id="html-output"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Configure marked for enhanced features
+        marked.setOptions({
+            gfm: true,
+            breaks: true,
+            pedantic: false,
+            sanitize: false,
+            smartLists: true,
+            smartypants: true,
+            tables: true
+        });
+
+        // Custom renderer
+        const renderer = new marked.Renderer();
+        
+        // Enhanced code rendering without copy button
+        renderer.code = function(code, language) {
+            return `<pre><code class="language-${language || ''}">${code}</code></pre>`;
+        };
+
+        // Support for definition lists
+        renderer.paragraph = function(text) {
+            if (text.includes('\n:   ')) {
+                const lines = text.split('\n');
+                let html = '';
+                let inDefinitionList = false;
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    const nextLine = lines[i + 1];
+                    
+                    if (line.trim() && nextLine?.startsWith(':   ')) {
+                        if (!inDefinitionList) {
+                            html += '<dl>';
+                            inDefinitionList = true;
+                        }
+                        html += `<dt>${line.trim()}</dt>`;
+                    } else if (line.startsWith(':   ')) {
+                        html += `<dd>${line.substring(4)}</dd>`;
+                    } else if (inDefinitionList && line.trim() === '') {
+                        continue;
+                    } else if (inDefinitionList) {
+                        html += '</dl>';
+                        inDefinitionList = false;
+                        if (line.trim()) {
+                            html += `<p>${line}</p>`;
+                        }
+                    } else if (line.trim()) {
+                        html += `<p>${line}</p>`;
+                    }
+                }
+                
+                if (inDefinitionList) {
+                    html += '</dl>';
+                }
+                
+                if (html.includes('<dl>')) {
+                    return html;
+                }
+            }
+            
+            return `<p>${text}</p>`;
+        };
+
+        marked.use({ renderer });
+
+        function convertMarkdown() {
+            const input = document.getElementById('markdown-input').value;
+            const output = document.getElementById('html-output');
+            
+            if (!input.trim()) {
+                output.innerHTML = '<div class="preview-empty">Start typing to see your markdown rendered...</div>';
+                return;
+            }
+            
+            try {
+                let html = marked.parse(input);
+                
+                // Process custom button tags
+                html = html.replace(/<button([^>]*)>/g, '<button class="markdown-button"$1>');
+                
+                // Process task lists
+                html = html.replace(/\[ \]/g, '<input type="checkbox" disabled>');
+                html = html.replace(/\[x\]/gi, '<input type="checkbox" checked disabled>');
+                
+                output.innerHTML = html;
+            } catch (error) {
+                output.innerHTML = `<div style="color: rgb(var(--muted-foreground)); font-style: italic;">Error parsing Markdown: ${error.message}</div>`;
+            }
+        }
+
+        function exportHTML() {
+            const markdownContent = document.getElementById('markdown-input').value;
+            const htmlContent = document.getElementById('html-output').innerHTML;
+            
+            if (!markdownContent.trim()) {
+                alert('Please enter some markdown content first!');
+                return;
+            }
+            
+            const fullHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Converted Markdown</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            color: #333;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+        
+        h1 { font-size: 2.25rem; border-bottom: 1px solid #e5e5e5; padding-bottom: 0.75rem; }
+        h2 { font-size: 1.875rem; }
+        h3 { font-size: 1.5rem; }
+        h4 { font-size: 1.25rem; }
+        h5 { font-size: 1.125rem; }
+        h6 { font-size: 1rem; color: #666; }
+        
+        p { margin-bottom: 1.25rem; }
+        
+        ul, ol { margin: 1.25rem 0; padding-left: 1.5rem; }
+        li { margin-bottom: 0.5rem; }
+        
+        blockquote {
+            border-left: 4px solid #e5e5e5;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            background: #f9f9f9;
+            color: #666;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            border: 1px solid #e5e5e5;
+        }
+        
+        th, td {
+            border: 1px solid #e5e5e5;
+            padding: 0.75rem 1rem;
+            text-align: left;
+        }
+        
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+        
+        pre {
+            background: #f5f5f5;
+            padding: 1.25rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+            border: 1px solid #e5e5e5;
+        }
+        
+        code {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 0.875rem;
+        }
+        
+        p code {
+            background: #f5f5f5;
+            padding: 0.25rem 0.375rem;
+            border-radius: 4px;
+            font-size: 0.8125rem;
+            border: 1px solid #e5e5e5;
+        }
+        
+        .markdown-button {
+            background: #000;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin: 0.25rem 0.25rem 0.25rem 0;
+        }
+        
+        .markdown-button:hover {
+            opacity: 0.9;
+        }
+        
+        a {
+            color: #000;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        
+        hr {
+            border: none;
+            border-top: 1px solid #e5e5e5;
+            margin: 2rem 0;
+        }
+        
+        input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+${htmlContent}
+</body>
+</html>`;
+
+            const blob = new Blob([fullHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted-markdown.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const themeIcon = document.querySelector('.theme-icon');
+            
+            if (body.dataset.theme === 'dark') {
+                body.dataset.theme = 'light';
+                themeIcon.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.dataset.theme = 'dark';
+                themeIcon.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Auto-save functionality
+        const input = document.getElementById('markdown-input');
+        input.addEventListener('input', () => {
+            localStorage.setItem('markdown-content', input.value);
+        });
+
+        // Initialize app
+        window.addEventListener('load', () => {
+            // Load saved content
+            const saved = localStorage.getItem('markdown-content');
+            if (saved) {
+                input.value = saved;
+            }
+            
+            // Load saved theme
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.dataset.theme = 'dark';
+                document.querySelector('.theme-icon').textContent = '☀️';
+            }
+            
+            // Initial conversion
+            convertMarkdown();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                e.preventDefault();
+                exportHTML();
+            }
+            
+            if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
+                e.preventDefault();
+                toggleTheme();
+            }
+        });
+    </script>
+</body>
+</html>
