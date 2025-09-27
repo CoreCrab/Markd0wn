@@ -1,7 +1,7 @@
 
 <br/>
 <div align="center">
-<a href="https://github.com/ShaanCoding/ReadME-Generator">
+<a href="https://github.com/CoreCrab/Markd0wn/">
 <img src="https://i.imgur.com/Y8k9v85.png" alt="Logo" width="80" height="80">
 </a>
 <h3 align="center">Markd0wn</h3>
@@ -19,7 +19,9 @@ a modern and simple md to html generator that adds style to your text
 
 ## About The Project
 
-![Screenshot of the converter page](https://i.imgur.com/NtS4Qef.png)
+<a href="https://markd0wn.vercel.app/">
+<img src="https://i.imgur.com/NtS4Qef.png" alt="Screenshot">
+</a>
 
 There are a lot of markdown to html converters, but there's no converter that makes the output beautiful. That's why we made this.
 ## Roadmap
