@@ -9,7 +9,7 @@
 a modern and simple md to html generator that adds style to your text
 <br/>
 <br/>
-<a href="https://markd0wn.vercel.app"><strong>Explore the docs »</strong></a>
+<a href="https://markd0wn.vercel.app"><strong>Open the app »</strong></a>
 
   
 
